@@ -36,7 +36,6 @@ static ServoObj *gCurrServo;  // servo object for the current command
 
 static void ServoAttach(int argc, char **argv)
 {
-  Cmd::Printf("ServoAttach\n");
   if (argc != 1 && argc != 3) {
     Cmd::Printf("Unexpected number of argumnents. Expecting 0 or 2, found %d", argc - 1);
     return;
