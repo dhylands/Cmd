@@ -22,6 +22,7 @@
 #define CMD_H
 
 #include <stdarg.h>
+#include <stdint.h>
 
 #if !defined(LINE_LEN)
 #define LINE_LEN  128
@@ -42,6 +43,7 @@ public:
     const char *_name;  // Command name
     const char *_args;  // Describes arguments (used to dsplay help)
     const char *_descr; // Describes what the command does
+    const Entry *_subCommand;
   };
 
   Cmd(const Entry *entry);
@@ -53,6 +55,13 @@ public:
   static int PrintFunc(void *param, int ch);
   static void Args(int argc, char **argv);
   static void Help(int argc, char **argv);
+  static void Help(const Entry *entry, int argc, char **argv);
+
+  static bool ParseInt(const char *label, const char *str, uint8_t *outNum);
+  static bool ParseInt(const char *label, const char *str, uint32_t *outNum);
+  static bool ParseInt(const char *label, const char *str, int *outNum);
+
+  static void ProcessCommand(const Entry *entry, int argc, char **argv);
 
 protected:
   virtual void PrintChar(char ch);
@@ -62,7 +71,7 @@ protected:
 
 private:
   void Parse();
-  const Entry *FindCommand(const char *cmd);
+  static const Entry *FindCommand(const Entry *entry, const char *cmd);
 
   static Cmd *sCmd;
   const Entry *_entry;

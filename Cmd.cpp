@@ -151,18 +151,24 @@ void Cmd::Parse()
     return;
   }
 
-  const Entry *entry = FindCommand(_argv[0]);
+  ProcessCommand(_entry, argc, _argv);
+}
+
+//static
+void Cmd::ProcessCommand(const Entry *entries, int argc, char **argv)
+{
+  const Entry *entry = FindCommand(entries, argv[0]);
   if (entry) {
-    entry->_func(argc, _argv);
+    entry->_func(argc, argv);
   }
   else {
-    Printf("Unrecognized command: '%s'\n", _argv[0]);
+    Printf("Unrecognized command: '%s'\n", argv[0]);
   }
 }
 
-const Cmd::Entry *Cmd::FindCommand(const char *cmd)
+//static
+const Cmd::Entry *Cmd::FindCommand(const Entry *entry, const char *cmd)
 {
-  const Entry *entry = _entry;
   while (entry->_func) {
     if (strcmp(entry->_name, cmd) == 0) {
       return entry;
@@ -182,12 +188,22 @@ void Cmd::Args(int argc, char **argv)
 
 void Cmd::Help(int argc, char **argv)
 {
+  Cmd::Help(sCmd->_entry, argc, argv);
+}
+
+void Cmd::Help(const Cmd::Entry *entries, int argc, char **argv)
+{
   if (argc > 1) {
     // Give help for a specific command
 
-    const Entry *entry = sCmd->FindCommand(argv[1]);
+    const Entry *entry = FindCommand(entries, argv[1]);
     if (entry) {
-      Printf("%s %s - %s\n", entry->_name, entry->_args, entry->_descr);
+      if (entry->_subCommand) {
+        Help(entry->_subCommand, argc - 1, &argv[1]);
+      }
+      else {
+        Printf("%s %s - %s\n", entry->_name, entry->_args, entry->_descr); 
+      }
     }
     else {
       Printf("Unrecognized command: '%s'\n", argv[1]);
@@ -197,16 +213,59 @@ void Cmd::Help(int argc, char **argv)
 
   size_t wName = 0;
   size_t wArgs = 0;
-  const Entry *entry = sCmd->_entry;
+  const Entry *entry = entries;
   while (entry->_func) {
     wName = max(wName, strlen(entry->_name));
     wArgs = max(wArgs, strlen(entry->_args));
     entry++;
   }
-  entry = sCmd->_entry;
+  entry = entries;
   while (entry->_func) {
     Printf("%-*s %-*s - %s\n", wName, entry->_name, 
             wArgs, entry->_args, entry->_descr);
     entry++;
   }
 }
+
+//static
+bool Cmd::ParseInt(const char *label, const char *str, uint8_t *outNum)
+{
+  uint32_t num32;
+
+  if (!ParseInt(label, str, &num32)) {
+    return false;
+  }
+  if (num32 > 255) {
+    Printf("Expecting integer <= 256. Found: %u\n", num32);
+    return false;
+  }
+  *outNum = static_cast<uint8_t>(num32);
+  return true;
+}
+
+//static
+bool Cmd::ParseInt(const char *label, const char *str, uint32_t *outNum)
+{
+  char *endptr;
+  uint32_t num = strtoul(str, &endptr, 0);
+  if (*endptr != '\0') {
+    Printf("Expecting unsigned integer %s; found '%s'\n", label, str);
+    return false;
+  }
+  *outNum = num;
+  return true;
+}
+
+//static
+bool Cmd::ParseInt(const char *label, const char *str, int *outNum)
+{
+  char *endptr;
+  uint32_t num = strtol(str, &endptr, 0);
+  if (*endptr != '\0') {
+    Printf("Expecting integer %s; found '%s'\n", label, str);
+    return false;
+  }
+  *outNum = num;
+  return true;
+}
+
